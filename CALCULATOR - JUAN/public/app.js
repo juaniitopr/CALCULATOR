@@ -11,13 +11,13 @@ function updateDisplay() {
 
 function appendToDisplay(number) {
   errorElement.textContent = '';
-  
+
   if (currentInput === '0' && number !== '.') {
     currentInput = number;
   } else {
     currentInput += number;
   }
-  
+
   updateDisplay();
 }
 
@@ -29,24 +29,24 @@ function clearDisplay() {
   updateDisplay();
 }
 
-async function calculate(operation) {
+function calculate(operation) {
   try {
     errorElement.textContent = '';
-    
+
     if (operation === 'igual' && pendingOperation) {
-      const result = await performCalculation(currentInput);
+      const result = performLocalCalculation(currentInput);
       currentInput = result.toString();
       firstOperand = null;
       pendingOperation = null;
     } else if (['sumar', 'restar', 'multiplicar', 'dividir'].includes(operation)) {
       if (pendingOperation) {
-        currentInput = (await performCalculation(currentInput)).toString();
+        currentInput = performLocalCalculation(currentInput).toString();
       }
       firstOperand = currentInput;
       pendingOperation = operation;
       currentInput = '0';
     }
-    
+
     updateDisplay();
   } catch (error) {
     errorElement.textContent = error.message;
@@ -55,26 +55,25 @@ async function calculate(operation) {
   }
 }
 
-async function performCalculation(secondOperand) {
-  const response = await fetch('/api/calculate', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      operation: pendingOperation,
-      a: parseFloat(firstOperand),
-      b: parseFloat(secondOperand)
-    })
-  });
-  
-  const data = await response.json();
-  
-  if (!data.success) {
-    throw new Error(data.message);
+function performLocalCalculation(secondOperand) {
+  const a = parseFloat(firstOperand);
+  const b = parseFloat(secondOperand);
+
+  switch (pendingOperation) {
+    case 'sumar':
+      return a + b;
+    case 'restar':
+      return a - b;
+    case 'multiplicar':
+      return a * b;
+    case 'dividir':
+      if (b === 0) {
+        throw new Error("División por cero no permitida");
+      }
+      return a / b;
+    default:
+      throw new Error("Operación no soportada");
   }
-  
-  return data.result;
 }
 
 // Inicializar display
